@@ -140,7 +140,7 @@ const CrowdMovementTrends = () => {
                 <div className="font-semibold mb-2">Zone {zone}</div>
                 <div className="text-sm mb-1">Heading:</div>
                 <ul className="mb-1">
-                  {["A","B","C","D","E","F"].filter(z => z !== zone).map(z => (
+                  {["A","B","C","D","E","F","G"].filter(z => z !== zone).map(z => (
                     <li key={z} className="ml-2">→ Zone {z}: <span className="font-bold text-blue-700">{headingCounts[z]}</span></li>
                   ))}
                 </ul>
