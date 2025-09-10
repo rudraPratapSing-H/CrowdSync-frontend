@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, Polyline, Polygon, CircleMarker, Tooltip } from 'react-leaflet';
-import { HeatmapLayer } from 'react-leaflet-heatmap-layer-v3';
+// import { HeatmapLayer } from 'react-leaflet-heatmap-layer-v3';
 import L from 'leaflet';
 
 // Helper: convert [x, y] to [y, x] for Leaflet (since it expects [lat, lng])
@@ -15,6 +15,7 @@ const IndoorMap = () => {
   const [zoneCounts, setZoneCounts] = useState({});
   const [safeLimits, setSafeLimits] = useState({});
   const [showHeatmap, setShowHeatmap] = useState(true);
+  // console.log(safeLimits)
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -38,18 +39,11 @@ const IndoorMap = () => {
         if (!safeRes.ok) throw new Error('Failed to fetch safe limits');
         const layoutData = await layoutRes.json();
         const zoneCounts = await countsRes.json();
-        const safeLimitsData = await safeRes.json();
-        // safeLimitsData: { safeLimits: [{ zoneName, safeLimit }, ...] }
-        const safeLimitsMap = {};
-        if (safeLimitsData && Array.isArray(safeLimitsData.safeLimits)) {
-          safeLimitsData.safeLimits.forEach(z => {
-            safeLimitsMap[z.zoneName] = z.safeLimit;
-          });
-        }
-        
-        setLayoutData(layoutData);
-        setZoneCounts(zoneCounts);
-        setSafeLimits(safeLimitsMap);
+  const safeLimitsData = await safeRes.json();
+  // safeLimitsData: { A: 120, B: 100, ... }
+  setLayoutData(layoutData);
+  setZoneCounts(zoneCounts);
+  setSafeLimits(safeLimitsData);
       } catch (err) {
         setError(err.message);
       } finally {
