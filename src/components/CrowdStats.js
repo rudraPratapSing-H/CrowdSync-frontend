@@ -4,10 +4,8 @@ import React, { useEffect, useState } from "react";
 const CrowdStats = () => {
   const [crowdData, setCrowdData] = useState({});
 
-
   // Zone limits fetched from API
   const [zoneLimits, setZoneLimits] = useState({});
-
 
   // Use safeLimit from API: warning at 70% of safeLimit, danger at 100%
   const getStatus = (count, safeLimit) => {
@@ -29,7 +27,7 @@ const CrowdStats = () => {
       (sum, count) => sum + (count || 0),
       0
     );
-    return total > 99 ? "99+" : total.toString();
+    return total.toString();
   };
 
   // Fetch crowd data from API every 15 seconds
@@ -260,7 +258,7 @@ const CrowdStats = () => {
                 <div>
                   <div className="count-display">{zoneCount}</div>
                   <div className="limits-text">
-                    safeLimit: {safeLimit !== undefined ? safeLimit : 'N/A'}
+                    safeLimit: {safeLimit !== undefined ? safeLimit : "N/A"}
                   </div>
                 </div>
               </div>
