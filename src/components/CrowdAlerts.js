@@ -71,6 +71,20 @@ const CrowdAlerts = () => {
     )
     .map(([zone, count]) => ({ zone, count, limit: safeLimits[zone] }));
 
+  // Find zones approaching limit (80-99% capacity)
+  const approachingLimit = Object.entries(recentCounts)
+    .filter(([zone, count]) => {
+      if (safeLimits[zone] === undefined) return false;
+      const utilizationPercent = (count / safeLimits[zone]) * 100;
+      return utilizationPercent >= 80 && utilizationPercent < 100;
+    })
+    .map(([zone, count]) => ({
+      zone,
+      count,
+      limit: safeLimits[zone],
+      spotsRemaining: safeLimits[zone] - count,
+    }));
+
   // Find future breaches (for each prediction timestamp)
   const futureBreaches = [];
   Object.entries(predictions).forEach(([timestamp, zones]) => {
@@ -87,14 +101,12 @@ const CrowdAlerts = () => {
   });
 
   // Generate smart suggestions for crowd redistribution
-  const generateSuggestions = () => {
-    if (currentBreaches.length === 0 && futureBreaches.length === 0) return [];
-
+  const generateSuggestions = (targetZone) => {
     // Find safe zones with available capacity
     const safeZones = Object.entries(recentCounts)
       .filter(
         ([zone, count]) =>
-          safeLimits[zone] !== undefined && count < safeLimits[zone]
+          safeLimits[zone] !== undefined && count < safeLimits[zone] * 0.7 // Less than 70% capacity
       )
       .map(([zone, count]) => ({
         zone,
@@ -103,555 +115,243 @@ const CrowdAlerts = () => {
         availableCapacity: safeLimits[zone] - count,
         utilizationPercent: Math.round((count / safeLimits[zone]) * 100),
       }))
-      .sort((a, b) => b.availableCapacity - a.availableCapacity); // Sort by most available capacity
+      .sort((a, b) => b.availableCapacity - a.availableCapacity)
+      .slice(0, 3); // Top 3 alternatives
 
-    const suggestions = [];
-
-    // Suggestions for current breaches
-    currentBreaches.forEach(({ zone, count, limit }) => {
-      const excessPeople = count - limit;
-      const bestSafeZones = safeZones
-        .filter((sz) => sz.availableCapacity >= Math.min(excessPeople, 10))
-        .slice(0, 2);
-
-      if (bestSafeZones.length > 0) {
-        suggestions.push({
-          type: "current",
-          fromZone: zone,
-          excessPeople,
-          recommendations: bestSafeZones,
-          priority: "high",
-        });
-      }
-    });
-
-    // Suggestions for future breaches
-    if (currentBreaches.length === 0 && futureBreaches.length > 0) {
-      const futureZones = [...new Set(futureBreaches.map((fb) => fb.zone))];
-      futureZones.forEach((zone) => {
-        const bestSafeZones = safeZones.slice(0, 2);
-        if (bestSafeZones.length > 0) {
-          suggestions.push({
-            type: "preventive",
-            fromZone: zone,
-            recommendations: bestSafeZones,
-            priority: "medium",
-          });
-        }
-      });
-    }
-
-    return suggestions;
+    return safeZones.map((sz) => sz.zone);
   };
 
-  const suggestions = generateSuggestions();
+  const hasAlerts =
+    currentBreaches.length > 0 ||
+    approachingLimit.length > 0 ||
+    futureBreaches.length > 0;
 
-  return (
-    <>
-      <style>{`
-        .alerts-container {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          margin-bottom: 1rem;
-        }
-        
-        .alerts-header {
-          display: flex;
-          align-items: center;
-          font-size: 1.25rem;
-          font-weight: bold;
-          margin-bottom: 1.5rem;
-          color: #dc2626;
-        }
-        
-        .header-icon {
-          width: 1.5rem;
-          height: 1.5rem;
-          margin-right: 0.5rem;
-          color: #dc2626;
-        }
-        
-        .loading-state {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-          color: #6b7280;
-          font-size: 1rem;
-        }
-        
-        .loading-spinner {
-          width: 1.25rem;
-          height: 1.25rem;
-          margin-right: 0.5rem;
-          animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        .error-state {
-          background: rgba(254, 226, 226, 0.8);
-          border: 2px solid #ef4444;
-          border-radius: 8px;
-          padding: 1rem;
-          color: #dc2626;
-          font-weight: 600;
-          text-align: center;
-        }
-        
-        .section {
-          margin-bottom: 1.5rem;
-        }
-        
-        .section:last-child {
-          margin-bottom: 0;
-        }
-        
-        .section-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin-bottom: 0.75rem;
-        }
-        
-        .current-title { color: #dc2626; }
-        .future-title { color: #ea580c; }
-        .suggestions-title { color: #0d9488; }
-        
-        .safe-status {
-          display: flex;
-          align-items: center;
-          background: rgba(220, 252, 231, 0.8);
-          border: 2px solid #22c55e;
-          border-radius: 8px;
-          padding: 1rem;
-          color: #15803d;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
-        }
-        
-        .safe-icon {
-          width: 1.25rem;
-          height: 1.25rem;
-          margin-right: 0.5rem;
-          color: #15803d;
-        }
-        
-        .alerts-list, .suggestions-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-        
-        .alert-card {
-          display: flex;
-          align-items: center;
-          padding: 1rem;
-          border-radius: 8px;
-          border-left-width: 4px;
-          border-left-style: solid;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          position: relative;
-        }
-        
-        .alert-card:hover {
-          transform: translateX(4px);
-        }
-        
-        .current-alert {
-          background: rgba(254, 226, 226, 0.9);
-          border-left-color: #dc2626;
-          color: #dc2626;
-          box-shadow: 
-            0 4px 12px rgba(239, 68, 68, 0.2), 
-            0 2px 4px rgba(239, 68, 68, 0.15);
-          animation: urgent-pulse 2s ease-in-out infinite alternate;
-        }
-        
-        .current-alert:hover {
-          box-shadow: 
-            0 8px 25px rgba(239, 68, 68, 0.3), 
-            0 4px 8px rgba(239, 68, 68, 0.2);
-        }
-        
-        .future-alert {
-          background: rgba(255, 237, 213, 0.9);
-          border-left-color: #ea580c;
-          color: #ea580c;
-          box-shadow: 
-            0 4px 12px rgba(234, 88, 12, 0.15), 
-            0 2px 4px rgba(234, 88, 12, 0.1);
-        }
-        
-        .future-alert:hover {
-          box-shadow: 
-            0 8px 25px rgba(234, 88, 12, 0.25), 
-            0 4px 8px rgba(234, 88, 12, 0.15);
-        }
-        
-        .suggestion-card {
-          background: rgba(204, 251, 241, 0.9);
-          border-left-color: #0d9488;
-          color: #0f766e;
-          box-shadow: 
-            0 4px 12px rgba(13, 148, 136, 0.15), 
-            0 2px 4px rgba(13, 148, 136, 0.1);
-          padding: 1.25rem;
-        }
-        
-        .suggestion-card:hover {
-          box-shadow: 
-            0 8px 25px rgba(13, 148, 136, 0.25), 
-            0 4px 8px rgba(13, 148, 136, 0.15);
-          transform: translateX(4px);
-        }
-        
-        @keyframes urgent-pulse {
-          0% { 
-            box-shadow: 
-              0 4px 12px rgba(239, 68, 68, 0.2), 
-              0 2px 4px rgba(239, 68, 68, 0.15);
-          }
-          100% { 
-            box-shadow: 
-              0 6px 20px rgba(239, 68, 68, 0.3), 
-              0 3px 8px rgba(239, 68, 68, 0.2);
-          }
-        }
-        
-        .alert-icon, .suggestion-icon {
-          width: 1.5rem;
-          height: 1.5rem;
-          margin-right: 0.75rem;
-          flex-shrink: 0;
-        }
-        
-        .alert-text, .suggestion-text {
-          flex: 1;
-        }
-        
-        .zone-badge {
-          display: inline-block;
-          background: rgba(255, 255, 255, 0.9);
-          color: inherit;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 700;
-          margin: 0 0.25rem;
-          font-size: 0.9em;
-        }
-        
-        .count-badge {
-          display: inline-block;
-          background: rgba(255, 255, 255, 0.9);
-          color: inherit;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 700;
-          margin: 0 0.25rem;
-          font-size: 0.9em;
-        }
-        
-        .recommendations {
-          margin-top: 0.75rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-        
-        .recommendation-item {
-          display: flex;
-          align-items: center;
-          background: rgba(255, 255, 255, 0.8);
-          padding: 0.5rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.9em;
-          font-weight: 500;
-        }
-        
-        .capacity-bar {
-          display: inline-block;
-          width: 40px;
-          height: 6px;
-          background: rgba(13, 148, 136, 0.2);
-          border-radius: 3px;
-          margin: 0 0.5rem;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        .capacity-fill {
-          position: absolute;
-          left: 0;
-          top: 0;
-          height: 100%;
-          background: #0d9488;
-          border-radius: 3px;
-          transition: width 0.3s ease;
-        }
-        
-        /* Responsive design */
-        @media (max-width: 768px) {
-          .alerts-container {
-            padding: 1rem;
-          }
-          
-          .alerts-header {
-            font-size: 1.125rem;
-          }
-          
-          .section-title {
-            font-size: 1rem;
-          }
-          
-          .alert-card, .suggestion-card {
-            padding: 0.75rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
-          
-          .alert-icon, .suggestion-icon {
-            margin-right: 0;
-          }
-          
-          .recommendations {
-            width: 100%;
-          }
-        }
-      `}</style>
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600 font-medium">
+            Loading alerts...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
-      <div className="alerts-container">
-        <h2 className="alerts-header">
-          <svg
-            className="header-icon"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          Crowd Alerts
-        </h2>
-
-        {loading ? (
-          <div className="loading-state">
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-red-200 p-6 mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
             <svg
-              className="loading-spinner"
+              className="w-5 h-5 text-red-500 mr-2"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2"
               viewBox="0 0 24 24"
             >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
+                strokeWidth="2"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
             </svg>
-            Loading alerts...
+            <span className="text-red-700 font-medium">{error}</span>
           </div>
-        ) : error ? (
-          <div className="error-state">{error}</div>
-        ) : (
-          <>
-            {/* Current breaches */}
-            <div className="section">
-              <h3 className="section-title current-title">
-                🚨 Current Breaches
-              </h3>
-              {currentBreaches.length === 0 ? (
-                <div className="safe-status">
-                  <svg
-                    className="safe-icon"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  All zones are within safe capacity.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+      {/* Header */}
+      <div className="flex items-center mb-6">
+        <svg
+          className="w-6 h-6 text-red-500 mr-3"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          ></path>
+        </svg>
+        <h2 className="text-xl font-bold text-gray-900">
+          Active Alerts & Recommendations
+        </h2>
+      </div>
+
+      {!hasAlerts ? (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <svg
+              className="w-5 h-5 text-green-500 mr-3"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M5 13l4 4L19 7"
+              ></path>
+            </svg>
+            <span className="text-green-700 font-medium">
+              All zones are operating within safe capacity
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Current Breaches */}
+          {currentBreaches.map(({ zone, count, limit }) => {
+            const excessCount = count - limit;
+            const suggestions = generateSuggestions(zone);
+
+            return (
+              <div
+                key={zone}
+                className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <svg
+                      className="w-5 h-5 text-red-500 mr-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      ></path>
+                    </svg>
+                    <span className="text-lg font-semibold text-red-700">
+                      Zone {zone} Overcrowded
+                    </span>
+                  </div>
+                  <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    {count}/{limit}
+                  </span>
                 </div>
-              ) : (
-                <div className="alerts-list">
-                  {currentBreaches.map(({ zone, count, limit }) => (
-                    <div key={zone} className="alert-card current-alert">
+                <div className="text-red-600 mb-3">
+                  Current: <span className="font-semibold">{count} people</span>{" "}
+                  • Capacity exceeded by{" "}
+                  <span className="font-semibold">{excessCount}</span>
+                </div>
+
+                {suggestions.length > 0 && (
+                  <div className="bg-white bg-opacity-60 rounded-lg p-3">
+                    <div className="flex items-center text-red-700">
                       <svg
-                        className="alert-icon"
+                        className="w-4 h-4 mr-2"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="2"
                         viewBox="0 0 24 24"
                       >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+                          strokeWidth="2"
+                          d="M17 8l4 4m0 0l-4 4m4-4H3"
+                        ></path>
                       </svg>
-                      <span className="alert-text">
-                        Critical: Zone{" "}
-                        <span className="zone-badge">{zone}</span> is currently
-                        above safe limit (
-                        <span className="count-badge">{count}</span> /{" "}
-                        <span className="count-badge">{limit}</span>)!
+                      <span className="font-medium">Suggestion:</span>
+                      <span className="ml-2">
+                        Redirect flow: Zone {zone} → {suggestions.join(", ")}
                       </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Smart Suggestions */}
-            {suggestions.length > 0 && (
-              <div className="section">
-                <h3 className="section-title suggestions-title">
-                  💡 Smart Recommendations
-                </h3>
-                <div className="suggestions-list">
-                  {suggestions.map((suggestion, index) => (
-                    <div key={index} className="alert-card suggestion-card">
-                      <svg
-                        className="suggestion-icon"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                        />
-                      </svg>
-                      <div className="suggestion-text">
-                        <div>
-                          {suggestion.type === "current" ? (
-                            <>
-                              <strong>Immediate Action:</strong> Redirect{" "}
-                              <span className="count-badge">
-                                {suggestion.excessPeople}
-                              </span>{" "}
-                              people from Zone{" "}
-                              <span className="zone-badge">
-                                {suggestion.fromZone}
-                              </span>{" "}
-                              to safer areas:
-                            </>
-                          ) : (
-                            <>
-                              <strong>Preventive Measure:</strong> Consider
-                              directing new arrivals away from Zone{" "}
-                              <span className="zone-badge">
-                                {suggestion.fromZone}
-                              </span>{" "}
-                              to:
-                            </>
-                          )}
-                        </div>
-                        <div className="recommendations">
-                          {suggestion.recommendations.map((rec, i) => (
-                            <div key={rec.zone} className="recommendation-item">
-                              🎯 Zone{" "}
-                              <span className="zone-badge">{rec.zone}</span>
-                              <span className="capacity-bar">
-                                <span
-                                  className="capacity-fill"
-                                  style={{
-                                    width: `${rec.utilizationPercent}%`,
-                                  }}
-                                ></span>
-                              </span>
-                              <span className="count-badge">
-                                {rec.availableCapacity}
-                              </span>{" "}
-                              spots available ({rec.utilizationPercent}% full)
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
-            )}
+            );
+          })}
 
-            {/* Future breaches */}
-            <div className="section">
-              <h3 className="section-title future-title">
-                ⚠️ Predicted Future Breaches
-              </h3>
-              {futureBreaches.length === 0 ? (
-                <div className="safe-status">
+          {/* Approaching Limit */}
+          {approachingLimit.map(({ zone, count, limit, spotsRemaining }) => (
+            <div
+              key={zone}
+              className="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
                   <svg
-                    className="safe-icon"
+                    className="w-5 h-5 text-yellow-600 mr-3"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="2"
                     viewBox="0 0 24 24"
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
                   </svg>
-                  No predicted breaches in the next 2 minutes.
+                  <span className="text-lg font-semibold text-yellow-700">
+                    Zone {zone} Approaching Limit
+                  </span>
                 </div>
-              ) : (
-                <div className="alerts-list">
-                  {futureBreaches.map(
-                    ({ timestamp, zone, count, limit }, i) => (
-                      <div
-                        key={timestamp + zone + i}
-                        className="alert-card future-alert"
-                      >
-                        <svg
-                          className="alert-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span className="alert-text">
-                          Prediction: Zone{" "}
-                          <span className="zone-badge">{zone}</span> will exceed
-                          safe limit (
-                          <span className="count-badge">{count}</span> /{" "}
-                          <span className="count-badge">{limit}</span>) at{" "}
-                          <strong>{timestamp}</strong>
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
+                <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  {count}/{limit}
+                </span>
+              </div>
+              <div className="text-yellow-700">
+                Monitor closely •{" "}
+                <span className="font-semibold">
+                  {spotsRemaining} spots remaining
+                </span>
+              </div>
             </div>
-          </>
-        )}
-      </div>
-    </>
+          ))}
+
+          {/* Future Breaches */}
+          {futureBreaches.map(({ timestamp, zone, count, limit }, index) => (
+            <div
+              key={`${timestamp}-${zone}-${index}`}
+              className="bg-orange-50 border-l-4 border-orange-500 rounded-lg p-4"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <svg
+                    className="w-5 h-5 text-orange-600 mr-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  <span className="text-lg font-semibold text-orange-700">
+                    Zone {zone} Predicted Breach
+                  </span>
+                </div>
+                <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  {count}/{limit}
+                </span>
+              </div>
+              <div className="text-orange-700">
+                Predicted at <span className="font-semibold">{timestamp}</span>{" "}
+                • Expected:{" "}
+                <span className="font-semibold">{count} people</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

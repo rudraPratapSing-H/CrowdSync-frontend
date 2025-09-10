@@ -26,7 +26,7 @@ const Dashboard = () => {
                 CrowdSync Dashboard
               </h1>
               <p className="text-gray-600 mt-1">
-                Real-time crowd monitoring & management
+                Organizer Command Center • Real-time Crowd Intelligence
               </p>
             </div>
             <button
