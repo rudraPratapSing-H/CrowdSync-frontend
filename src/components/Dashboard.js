@@ -6,6 +6,7 @@ import CrowdStats from "./CrowdStats";
 import CrowdHeatmap from "./CrowdHeatmap";
 import CrowdAlerts from "./CrowdAlerts";
 import IndoorMap from "./IndoorMap";
+import OverviewBanner from "./OverviewBanner";
 
 const handleLogout = async () => {
   await auth.signOut();
@@ -36,7 +37,9 @@ const Dashboard = () => {
             </button>
           </div>
         </div>
-
+        <div className="mb-6">
+          <OverviewBanner />
+        </div>
         {/* Stats Section */}
         <div className="mb-6">
           <CrowdStats />

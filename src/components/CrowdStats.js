@@ -241,10 +241,10 @@ const CrowdStats = () => {
       `}</style>
 
       <div className="crowd-container">
-        <h2 className="crowd-header">
+        {/* <h2 className="crowd-header">
           Total People Detected:{" "}
           <span className="total-count">{getTotalCount()}</span>
-        </h2>
+        </h2> */}
 
         <div className="zones-grid">
           {Object.entries(crowdData).map(([zone, count]) => {
