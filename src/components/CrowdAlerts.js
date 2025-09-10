@@ -517,64 +517,6 @@ const CrowdAlerts = () => {
               )}
             </div>
 
-            {/* Future breaches */}
-            <div className="section">
-              <h3 className="section-title future-title">
-                ⚠️ Predicted Future Breaches
-              </h3>
-              {futureBreaches.length === 0 ? (
-                <div className="safe-status">
-                  <svg
-                    className="safe-icon"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                  No predicted breaches in the next 2 minutes.
-                </div>
-              ) : (
-                <div className="alerts-list">
-                  {futureBreaches.map(
-                    ({ timestamp, zone, count, limit }, i) => (
-                      <div
-                        key={timestamp + zone + i}
-                        className="alert-card future-alert"
-                      >
-                        <svg
-                          className="alert-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span className="alert-text">
-                          Prediction: Zone{" "}
-                          <span className="zone-badge">{zone}</span> will exceed
-                          safe limit (
-                          <span className="count-badge">{count}</span> /{" "}
-                          <span className="count-badge">{limit}</span>) at{" "}
-                          <strong>{timestamp}</strong>
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Smart Suggestions */}
             {suggestions.length > 0 && (
               <div className="section">
@@ -648,6 +590,64 @@ const CrowdAlerts = () => {
                 </div>
               </div>
             )}
+
+            {/* Future breaches */}
+            <div className="section">
+              <h3 className="section-title future-title">
+                ⚠️ Predicted Future Breaches
+              </h3>
+              {futureBreaches.length === 0 ? (
+                <div className="safe-status">
+                  <svg
+                    className="safe-icon"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  No predicted breaches in the next 2 minutes.
+                </div>
+              ) : (
+                <div className="alerts-list">
+                  {futureBreaches.map(
+                    ({ timestamp, zone, count, limit }, i) => (
+                      <div
+                        key={timestamp + zone + i}
+                        className="alert-card future-alert"
+                      >
+                        <svg
+                          className="alert-icon"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <span className="alert-text">
+                          Prediction: Zone{" "}
+                          <span className="zone-badge">{zone}</span> will exceed
+                          safe limit (
+                          <span className="count-badge">{count}</span> /{" "}
+                          <span className="count-badge">{limit}</span>) at{" "}
+                          <strong>{timestamp}</strong>
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
