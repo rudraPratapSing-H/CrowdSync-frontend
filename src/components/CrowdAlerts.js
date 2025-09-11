@@ -1,5 +1,5 @@
 // CrowdAlerts.js - Enhanced UI with crowd surge alerts and smart zone suggestions
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 const EVENT_NAME = "Test Event";
 // Get today's date in YYYY-MM-DD format
@@ -18,10 +18,13 @@ const CrowdAlerts = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Store last Gemini fetch time
+  const lastGeminiFetchRef = useRef(0);
+
   useEffect(() => {
-    async function fetchAll() {
-      setLoading(true);
-      setError(null);
+    let isMounted = true;
+
+    async function fetchSafeLimitsAndCounts() {
       try {
         // Fetch safe limits
         const safeRes = await fetch(
@@ -30,18 +33,7 @@ const CrowdAlerts = () => {
           )}&date=${encodeURIComponent(DATE)}`
         );
         const safeJson = await safeRes.json();
-        setSafeLimits(safeJson);
-        console.log("Fetched safe limits:", safeJson);
-
-        // Fetch predictions from Gemini
-        const geminiRes = await fetch("http://localhost:5000/api/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventName: EVENT_NAME, date: DATE }),
-        });
-        const geminiJson = await geminiRes.json();
-        setPredictions(geminiJson);
-        console.log("Fetched predictions:", geminiJson);
+        if (isMounted) setSafeLimits(safeJson);
 
         // Fetch recent zone counts
         const recentRes = await fetch(
@@ -50,17 +42,56 @@ const CrowdAlerts = () => {
           )}&date=${encodeURIComponent(DATE)}`
         );
         const recentJson = await recentRes.json();
-        setRecentCounts(recentJson);
-        console.log("Fetched recent counts:", recentJson);
+        if (isMounted) setRecentCounts(recentJson);
       } catch (err) {
-        setError("Failed to fetch alert data.");
-      } finally {
-        setLoading(false);
+        if (isMounted) setError("Failed to fetch alert data.");
       }
     }
+
+    async function fetchGemini() {
+      try {
+        const geminiRes = await fetch("http://localhost:5000/api/gemini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventName: EVENT_NAME, date: DATE }),
+        });
+        const geminiJson = await geminiRes.json();
+        if (isMounted) setPredictions(geminiJson);
+        lastGeminiFetchRef.current = Date.now();
+      } catch (err) {
+        if (isMounted) setError("Failed to fetch Gemini predictions.");
+      }
+    }
+
+    async function fetchAll() {
+      setLoading(true);
+      setError(null);
+
+      // Always fetch safe limits and recent counts
+      await fetchSafeLimitsAndCounts();
+
+      // Fetch Gemini only if 5 minutes have passed
+      const now = Date.now();
+      if (
+        now - lastGeminiFetchRef.current > 300000 ||
+        lastGeminiFetchRef.current === 0
+      ) {
+        await fetchGemini();
+      }
+
+      setLoading(false);
+    }
+
+    // Initial fetch
     fetchAll();
-    const interval = setInterval(fetchAll, 300000);
-    return () => clearInterval(interval);
+
+    // Set interval for updating every 5 seconds
+    const interval = setInterval(fetchAll, 5000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // Find current breaches

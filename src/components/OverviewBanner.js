@@ -71,7 +71,7 @@ const OverviewBanner = () => {
     };
 
     fetchData();
-    const intervalId = setInterval(fetchData, 15000);
+    const intervalId = setInterval(fetchData, 5000); // Update every 5 seconds
     return () => clearInterval(intervalId);
   }, []);
 
