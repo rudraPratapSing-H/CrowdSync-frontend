@@ -52,7 +52,7 @@ const CrowdAlerts = () => {
       }
     }
     fetchAll();
-    const interval = setInterval(fetchAll, 15000);
+    const interval = setInterval(fetchAll, 60000);
     return () => clearInterval(interval);
   }, []);
 

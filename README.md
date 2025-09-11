@@ -1,3 +1,73 @@
+# Crowd Dashboard
+
+A modern React dashboard for real-time crowd management, visualization, and analytics. Integrates with a Node.js/Express backend, MongoDB Atlas, and supports JWT authentication for users and volunteers.
+
+## Features
+- Live indoor map with zone-wise crowd heatmap and safe limit coloring
+- Real-time zone statistics and alerts
+- User and volunteer authentication (JWT)
+- Responsive, mobile-friendly UI
+- Fetches data from backend REST API
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v16+ recommended)
+- npm
+- Backend API running (see main project README)
+
+### Installation
+```bash
+cd crowd-dashboard
+npm install
+```
+
+### Running the App
+```bash
+npm start
+```
+The app will run at [http://localhost:3000](http://localhost:3000) by default.
+
+### Environment Variables
+Create a `.env` file if you need to override the default API URL:
+```
+REACT_APP_API_URL=http://localhost:5000
+```
+
+## Project Structure
+```
+crowd-dashboard/
+  src/
+    components/
+      IndoorMap.js
+      CrowdStats.js
+      CrowdAlerts.js
+      ...
+    App.js
+    index.js
+  public/
+  package.json
+  README.md
+```
+
+## API Endpoints Used
+- `/api/recentZoneCounts` — Live zone headcounts
+- `/api/getSafeLimit` — Safe limits for each zone
+- `/api/signup`, `/api/login` — User authentication
+- `/api/volunteer/signup`, `/api/volunteer/login` — Volunteer authentication
+- `/api/eventLayout` — Event layout and zone coordinates
+
+## Customization
+- Edit `src/components/IndoorMap.js` for map logic and coloring
+- Edit `src/components/CrowdStats.js` for stats display
+- Edit `src/components/CrowdAlerts.js` for alert logic
+
+## Contributing
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+MIT
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
