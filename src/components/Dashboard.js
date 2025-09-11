@@ -104,6 +104,9 @@ const Dashboard = () => {
             Active Alerts
           </h2>
           <CrowdAlerts />
+
+          {/* crowd heatmap */}
+          <CrowdHeatmap></CrowdHeatmap>
         </div>
       </div>
     </div>
