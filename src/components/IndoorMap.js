@@ -77,7 +77,60 @@ const IndoorMap = () => {
     }
   };
 
-  if (loading) return <div>Loading map...</div>;
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "400px",
+          background: "linear-gradient(90deg, #e0e7ff 0%, #f3f4f6 100%)",
+          borderRadius: "16px",
+          boxShadow: "0 4px 16px rgba(30,64,175,0.08)",
+          marginBottom: "1rem",
+        }}
+      >
+        <div
+          style={{
+            width: "56px",
+            height: "56px",
+            border: "6px solid #2563eb",
+            borderTop: "6px solid #fff",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            marginBottom: "18px",
+          }}
+        />
+        <style>
+          {`@keyframes spin {
+          0% { transform: rotate(0deg);}
+          100% { transform: rotate(360deg);}
+        }`}
+        </style>
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: "1.25rem",
+            color: "#2563eb",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Loading Venue Map...
+        </div>
+        <div
+          style={{
+            color: "#64748b",
+            fontSize: "0.95rem",
+            marginTop: "6px",
+          }}
+        >
+          Please wait while we fetch the latest layout and crowd data.
+        </div>
+      </div>
+    );
+  }
   if (error) return <div>Error: {error}</div>;
   if (!layoutData) return <div>No layout data</div>;
 
