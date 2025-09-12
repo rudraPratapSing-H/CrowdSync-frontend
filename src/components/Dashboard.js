@@ -6,6 +6,7 @@ import CrowdHeatmap from "./CrowdHeatmap";
 import CrowdAlerts from "./CrowdAlerts";
 import IndoorMap from "./IndoorMap";
 import OverviewBanner from "./OverviewBanner";
+import logo from "../assets/logo.png";
 
 const handleLogout = async () => {
   await auth.signOut();
@@ -35,7 +36,8 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="flex items-center space-x-2 text-2xl font-bold text-gray-900">
+                <img src={logo} alt="Logo" className="h-8 w-8" />
                 CrowdSync Dashboard
               </h1>
               <p className="text-gray-600 mt-1">

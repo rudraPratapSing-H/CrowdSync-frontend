@@ -58,7 +58,7 @@ const OverviewBanner = () => {
         zoneNames.forEach((zone) => {
           const count = crowdData[zone] || 0;
           const safeLimit = zoneLimits[zone];
-          if (safeLimit && count > safeLimit) {
+          if (safeLimit && count >= safeLimit) {
             alertCount++;
           }
         });

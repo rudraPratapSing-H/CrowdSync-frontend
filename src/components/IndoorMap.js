@@ -280,11 +280,7 @@ const IndoorMap = () => {
                   fillOpacity: 0.85,
                   opacity: 0,
                 }}
-              >
-                <Tooltip>
-                  {zoneName} (Safe: {safeLimit})
-                </Tooltip>
-              </Polygon>
+              ></Polygon>
               <CircleMarker
                 center={toLatLng(center)}
                 radius={6}
@@ -305,13 +301,14 @@ const IndoorMap = () => {
                     style={{
                       background: "#222",
                       color: "#fff",
-                      padding: "2px 6px",
+                      padding: "2px 8px",
                       borderRadius: 4,
                       fontWeight: 600,
-                      fontSize: 16,
+                      fontSize: 14,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {count}
+                    {zoneName}: {count}
                   </span>
                 </Tooltip>
               </CircleMarker>
@@ -319,6 +316,88 @@ const IndoorMap = () => {
           );
         })}
       </MapContainer>
+      <div
+        style={{
+          marginTop: "12px",
+          padding: "10px 14px",
+          background: "#f9fafb",
+          borderRadius: "8px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+          fontSize: "14px",
+          fontWeight: 500,
+          color: "#111827",
+        }}
+      >
+        <div style={{ marginBottom: "6px", fontWeight: 600 }}>
+          Zone Status Legend
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                background: "rgba(30,136,229,0.7)", // blue
+                borderRadius: 4,
+                display: "inline-block",
+              }}
+            />
+            <span>Safe (&lt;30%)</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                background: "rgba(67,160,71,0.85)", // green
+                borderRadius: 4,
+                display: "inline-block",
+              }}
+            />
+            <span>Low (30–60%)</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                background: "rgba(251,192,45,0.85)", // yellow
+                borderRadius: 4,
+                display: "inline-block",
+              }}
+            />
+            <span>Moderate (60–85%)</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                background: "rgba(251,140,0,0.85)", // orange
+                borderRadius: 4,
+                display: "inline-block",
+              }}
+            />
+            <span>High (85–100%)</span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span
+              style={{
+                width: 18,
+                height: 18,
+                background: "rgba(229,57,53,0.85)", // red
+                borderRadius: 4,
+                display: "inline-block",
+              }}
+            />
+            <span>Overcrowded (&gt;100%)</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
