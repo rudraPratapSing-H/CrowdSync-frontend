@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 const CrowdStats = () => {
   const [crowdData, setCrowdData] = useState({});
   const [zoneLimits, setZoneLimits] = useState({});
-  const [isMobile, setIsMobile] = useState(false);
 
   const getStatus = (count, safeLimit) => {
     if (!safeLimit) return "safe";
@@ -35,14 +34,6 @@ const CrowdStats = () => {
     });
     return groups;
   };
-
-  // Check if screen is mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,110 +74,99 @@ const CrowdStats = () => {
   return (
     <>
       <style>{`
-        .crowd-container {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          margin-bottom: 1rem;
-        }
-        .zones-grid { 
-          display: grid; 
-          grid-template-columns: repeat(1, 1fr);
-          gap: 16px; 
-          padding: 8px;
-        }
-        @media (min-width: 640px) {
-          .zones-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        @media (min-width: 768px) {
-          .zones-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        @media (min-width: 1024px) {
-          .zones-grid { grid-template-columns: repeat(6, 1fr); }
-        }
-        .zone-card {
-          min-height: 120px;
-          min-width: 150px;
-          border-width: 2px;
-          border-style: solid;
-          border-radius: 12px;
-          padding: 1rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          text-align: center;
-        }
-        @media (min-width: 640px) {
-        .zone-card {
-        min-width: auto;  /* reset for tablet/desktop */
-          }
-        }
-        .zone-title { font-size: 1rem; font-weight: 600; }
-        .count-display { font-size: 1.5rem; font-weight: 700; }
-        .limits-text { font-size: 0.75rem; opacity: 0.8; }
-        /* Status styles */
-        .zone-safe { background: #dcfce7; border-color: #22c55e; color: #15803d; }
-        .zone-warning { background: #fef3c7; border-color: #eab308; color: #92400e; }
-        .zone-danger { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
-        /* Scroll styling */
-        .zones-scroll {
-          display: flex;
-          gap: 1rem;
-          overflow-x: auto;
-          padding-bottom: 0.5rem;
-        }
-        .zones-scroll::-webkit-scrollbar { height: 6px; }
-        .zones-scroll::-webkit-scrollbar-thumb {
-          background: #9ca3af;
-          border-radius: 4px;
-        }
-      `}</style>
+  .crowd-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+  }
+
+  .zone-card {
+    min-height: 120px;
+    min-width: 150px; /* wider for scroll rows */
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    position: relative;
+    z-index: 0;
+  }
+  
+  @media (min-width: 768px) {
+    .zone-card { min-width: 210px; }
+  }
+  @media (min-width: 1024px) {
+    .zone-card { min-width: 280px; }
+  }
+
+  .zone-title { font-size: 1rem; font-weight: 600; }
+  .count-display { font-size: 1.5rem; font-weight: 700; }
+  .limits-text { font-size: 0.75rem; opacity: 0.8; }
+
+  /* Status styles */
+  .zone-safe { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+  .zone-warning { background: #fef3c7; border-color: #eab308; color: #92400e; }
+
+  /* Danger zone with full visible pulse */
+  .zone-danger {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #b91c1c;
+    animation: danger-glow 5s infinite alternate;
+  }
+
+  @keyframes danger-glow {
+    0% {
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  /* Scroll styling for mobile horizontal rows */
+  .zones-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .zones-scroll::-webkit-scrollbar { height: 6px; }
+  .zones-scroll::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 4px;
+  }
+`}</style>
 
       <div className="crowd-container">
-        {isMobile ? (
-          // 📱 On phone → grouped rows with horizontal scroll
-          ["danger", "warning", "safe"].map(
-            (status) =>
-              groups[status].length > 0 && (
-                <div key={status}>
-                  <div className="font-semibold mb-2 capitalize">
-                    {status} Zones
-                  </div>
-                  <div className="zones-scroll">
-                    {groups[status].map(({ zone, count, safeLimit }) => (
-                      <div
-                        key={zone}
-                        className={`zone-card ${statusClass(status)}`}
-                      >
-                        <div className="zone-title">Zone {zone}</div>
-                        <div className="count-display">{count}</div>
-                        <div className="limits-text">
-                          Safe Limit: {safeLimit ?? "N/A"}
-                        </div>
+        {["danger", "warning", "safe"].map(
+          (status) =>
+            groups[status].length > 0 && (
+              <div key={status}>
+                <div className="font-semibold mb-2 capitalize">
+                  {status} Zones
+                </div>
+                <div className="zones-scroll">
+                  {groups[status].map(({ zone, count, safeLimit }) => (
+                    <div
+                      key={zone}
+                      className={`zone-card ${statusClass(status)}`}
+                    >
+                      <div className="zone-title">Zone {zone}</div>
+                      <div className="count-display">{count}</div>
+                      <div className="limits-text">
+                        Safe Limit: {safeLimit ?? "N/A"}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )
-          )
-        ) : (
-          // 💻 On tablet/desktop → normal grid
-          <div className="zones-grid">
-            {Object.entries(crowdData).map(([zone, count]) => {
-              const safeLimit = zoneLimits[zone];
-              const status = getStatus(count ?? 0, safeLimit);
-              return (
-                <div key={zone} className={`zone-card ${statusClass(status)}`}>
-                  <div className="zone-title">Zone {zone}</div>
-                  <div className="count-display">{count ?? 0}</div>
-                  <div className="limits-text">
-                    Safe Limit: {safeLimit ?? "N/A"}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              </div>
+            )
         )}
       </div>
     </>
