@@ -86,7 +86,7 @@ const CrowdAlerts = () => {
     }
 
     fetchAll();
-    const interval = setInterval(fetchAll, 5000);
+    const interval = setInterval(fetchAll, 120000);
 
     return () => {
       isMounted = false;

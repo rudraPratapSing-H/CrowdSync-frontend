@@ -7,19 +7,14 @@ const CrowdStats = () => {
   // Zone limits fetched from API
   const [zoneLimits, setZoneLimits] = useState({});
 
-  // Use safeLimit from API: warning at 70% of safeLimit, danger at 100%
-  const getStatus = (count, safeLimit) => {
-    if (!safeLimit) return "safe";
-    if (count < 0.7 * safeLimit) return "safe";
-    if (count < safeLimit) return "warning";
-    return "danger";
-  };
-
-  const statusClass = (status) => {
-    if (status === "safe") return "zone-safe";
-    if (status === "warning") return "zone-warning";
-    return "zone-danger";
-  };
+  // Color logic from IndoorMap.js
+  function getSafeColor(ratio) {
+    if (ratio >= 1) return "rgba(229,57,53,0.85)"; // red
+    if (ratio >= 0.85) return "rgba(251,140,0,0.85)"; // orange
+    if (ratio >= 0.6) return "rgba(251,192,45,0.85)"; // yellow
+    if (ratio >= 0.3) return "rgba(67,160,71,0.85)"; // green
+    return "rgba(30,136,229,0.7)"; // blue
+  }
 
   // Calculate total people
   const getTotalCount = () => {
@@ -241,6 +236,92 @@ const CrowdStats = () => {
       `}</style>
 
       <div className="crowd-container">
+        {/* Color Legend */}
+        <div
+          style={{
+            display: "flex",
+            gap: 18,
+            marginBottom: 18,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: "rgba(30,136,229,0.7)",
+                display: "inline-block",
+                border: "1.5px solid #1976d2",
+              }}
+            ></span>
+            <span style={{ fontSize: "0.98rem", color: "#2563eb" }}>
+              Safe Zone
+            </span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: "rgba(67,160,71,0.85)",
+                display: "inline-block",
+                border: "1.5px solid #22c55e",
+              }}
+            ></span>
+            <span style={{ fontSize: "0.98rem", color: "#22c55e" }}>
+              Low Occupancy
+            </span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: "rgba(251,192,45,0.85)",
+                display: "inline-block",
+                border: "1.5px solid #eab308",
+              }}
+            ></span>
+            <span style={{ fontSize: "0.98rem", color: "#eab308" }}>
+              Warning
+            </span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: "rgba(251,140,0,0.85)",
+                display: "inline-block",
+                border: "1.5px solid #fb923c",
+              }}
+            ></span>
+            <span style={{ fontSize: "0.98rem", color: "#fb923c" }}>
+              High Occupancy
+            </span>
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: "rgba(229,57,53,0.85)",
+                display: "inline-block",
+                border: "1.5px solid #ef4444",
+              }}
+            ></span>
+            <span style={{ fontSize: "0.98rem", color: "#ef4444" }}>
+              Danger Zone
+            </span>
+          </span>
+        </div>
         {/* <h2 className="crowd-header">
           Total People Detected:{" "}
           <span className="total-count">{getTotalCount()}</span>
@@ -250,10 +331,14 @@ const CrowdStats = () => {
           {Object.entries(crowdData).map(([zone, count]) => {
             const zoneCount = count ?? 0;
             const safeLimit = zoneLimits[zone];
-            const status = getStatus(zoneCount, safeLimit);
-
+            const ratio = safeLimit ? zoneCount / safeLimit : 0;
+            const bgColor = getSafeColor(ratio);
             return (
-              <div key={zone} className={`zone-card ${statusClass(status)}`}>
+              <div
+                key={zone}
+                className="zone-card"
+                style={{ background: bgColor }}
+              >
                 <div className="zone-title">Zone {zone}</div>
                 <div>
                   <div className="count-display">{zoneCount}</div>
