@@ -1,70 +1,95 @@
-# Getting Started with Create React App
+# 🚦 Crowd Dashboard
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![React](https://img.shields.io/badge/React-18-blue?logo=react)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-active-brightgreen)
 
-## Available Scripts
+A modern, responsive dashboard for real-time crowd management, visualization, and analytics. Integrates seamlessly with a Node.js/Express backend, MongoDB Atlas, and supports JWT authentication for users and volunteers.
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## 🎬 Demo Video
+[Watch the demo on Google Drive](https://drive.google.com/drive/folders/1CpuSH3ARzO7YxDgj9sGSa0s3UJev6z7K)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+![Crowd Dashboard Screenshot](docs/screenshot.png)
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## ✨ Features
 
-### `npm run build`
+- 🗺️ **Live Indoor Map**: Zone-wise crowd heatmap and safe limit coloring
+- 📊 **Real-Time Stats**: Live zone statistics and alerts
+- 🔒 **JWT Authentication**: User & volunteer login/signup
+- 📱 **Responsive UI**: Mobile-friendly and accessible
+- 🔗 **REST API Integration**: Fetches live data from backend
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🚀 Quick Start
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v16+ recommended)
+- npm
+- Backend API running (see main project README)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Installation
+```bash
+cd crowd-dashboard
+npm install
+```
 
-### `npm run eject`
+### Running the App
+```bash
+npm start
+```
+The app will run at [http://localhost:3000](http://localhost:3000) by default.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Environment Variables
+Create a `.env` file if you need to override the default API URL:
+```
+REACT_APP_API_URL=http://localhost:5000
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## 🗂️ Project Structure
+```
+crowd-dashboard/
+  src/
+    components/
+      IndoorMap.js
+      CrowdStats.js
+      CrowdAlerts.js
+      Login.js
+      Dashboard.js
+      ...
+    App.js
+    index.js
+  public/
+  package.json
+  README.md
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🔌 API Endpoints Used
+- `/api/recentZoneCounts` — Live zone headcounts
+- `/api/getSafeLimit` — Safe limits for each zone
+- `/api/signup`, `/api/login` — User authentication
+- `/api/volunteer/signup`, `/api/volunteer/login` — Volunteer authentication
+- `/api/eventLayout` — Event layout and zone coordinates
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🛠️ Customization
+- Edit `src/components/IndoorMap.js` for map logic and coloring
+- Edit `src/components/CrowdStats.js` for stats display
+- Edit `src/components/CrowdAlerts.js` for alert logic
+- Edit `src/components/Login.js` for authentication UI
+- Edit `src/components/Dashboard.js` for dashboard layout
 
-## Learn More
+## 🤝 Contributing
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 📄 License
+MIT
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+> _This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app)._
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+For advanced usage, scripts, and troubleshooting, see the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
