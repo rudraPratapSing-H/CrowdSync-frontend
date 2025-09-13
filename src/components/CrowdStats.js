@@ -1,13 +1,10 @@
-// CrowdStats.js - Enhanced UI with live zone-wise crowd data
+// CrowdStats.js
 import React, { useEffect, useState } from "react";
 
 const CrowdStats = () => {
   const [crowdData, setCrowdData] = useState({});
-
-  // Zone limits fetched from API
   const [zoneLimits, setZoneLimits] = useState({});
 
-  // Use safeLimit from API: warning at 70% of safeLimit, danger at 100%
   const getStatus = (count, safeLimit) => {
     if (!safeLimit) return "safe";
     if (count < 0.7 * safeLimit) return "safe";
@@ -21,48 +18,38 @@ const CrowdStats = () => {
     return "zone-danger";
   };
 
-  // Calculate total people
-  const getTotalCount = () => {
-    const total = Object.values(crowdData).reduce(
-      (sum, count) => sum + (count || 0),
-      0
-    );
-    return total.toString();
+  // Group zones by status
+  const groupZones = () => {
+    const groups = { safe: [], warning: [], danger: [] };
+    Object.entries(crowdData).forEach(([zone, count]) => {
+      const zoneCount = count ?? 0;
+      const safeLimit = zoneLimits[zone];
+      const status = getStatus(zoneCount, safeLimit);
+      groups[status].push({
+        zone,
+        count: zoneCount,
+        safeLimit,
+        status,
+      });
+    });
+    return groups;
   };
-
-  // Fetch crowd data from API every 15 seconds
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get today's date in YYYY-MM-DD format
         const today = new Date();
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, "0");
         const dd = String(today.getDate()).padStart(2, "0");
         const dateStr = `${yyyy}-${mm}-${dd}`;
 
-        // Fetch crowd data
         const crowdResponse = await fetch(
           `http://localhost:5000/api/recentZoneCounts?eventName=Test%20Event&date=${dateStr}`
         );
-        if (!crowdResponse.ok) {
-          const errorText = await crowdResponse.text();
-          throw new Error(
-            `crowdResponse error: ${crowdResponse.status} - ${errorText}`
-          );
-        }
-        const rawCrowdText = await crowdResponse.text();
-        let crowdJson;
-        try {
-          crowdJson = JSON.parse(rawCrowdText);
-        } catch (e) {
-          console.error("Failed to parse crowdJson:", e, rawCrowdText);
-          crowdJson = {};
-        }
+        const crowdJson = await crowdResponse.json();
         setCrowdData(crowdJson);
 
-        // Fetch safe limits
         const safeLimitResponse = await fetch(
           `http://localhost:5000/api/getSafeLimit?eventName=Test%20Event&date=${dateStr}`
         );
@@ -78,193 +65,109 @@ const CrowdStats = () => {
     };
 
     fetchData();
-    const intervalId = setInterval(fetchData, 15000);
+    const intervalId = setInterval(fetchData, 5000);
     return () => clearInterval(intervalId);
   }, []);
+
+  const groups = groupZones();
 
   return (
     <>
       <style>{`
-        .crowd-container {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          margin-bottom: 1rem;
-        }
-        
-        .crowd-header {
-          font-size: 1.25rem;
-          font-weight: bold;
-          margin-bottom: 1rem;
-          color: #1f2937;
-        }
-        
-        .total-count {
-          color: #2563eb;
-          font-weight: 800;
-        }
-        
-        .zones-grid { 
-          display: grid; 
-          grid-template-columns: repeat(1, 1fr);
-          gap: 16px; 
-          padding: 8px;
-        }
-        
-        @media (min-width: 640px) {
-          .zones-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        
-        @media (min-width: 768px) {
-          .zones-grid { grid-template-columns: repeat(3, 1fr); }
-        }
-        
-        @media (min-width: 1024px) {
-          .zones-grid { grid-template-columns: repeat(6, 1fr); }
-        }
-        
-        .zone-card { 
-          min-height: 120px; 
-          border-width: 2px; 
-          border-style: solid; 
-          border-radius: 12px; 
-          padding: 1rem; 
-          display: flex; 
-          flex-direction: column; 
-          justify-content: space-between;
-          transition: all 0.3s ease;
-          position: relative;
-          backdrop-filter: blur(10px);
-          text-align: center;
-        }
-        
-        .zone-title { 
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin-bottom: 8px;
-          color: inherit;
-        }
-        
-        /* Enhanced shadows for all zones */
-        .zone-safe {
-          background-color: rgba(220, 252, 231, 0.8);
-          border-color: #22c55e;
-          color: #15803d;
-          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15), 0 2px 4px rgba(34, 197, 94, 0.1);
-        }
-        
-        .zone-safe:hover {
-          box-shadow: 0 8px 25px rgba(34, 197, 94, 0.2), 0 4px 8px rgba(34, 197, 94, 0.15);
-          transform: translateY(-2px);
-        }
-        
-        .zone-warning {
-          background-color: rgba(254, 243, 199, 0.8);
-          border-color: #eab308;
-          color: #ca8a04;
-          box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15), 0 2px 4px rgba(251, 191, 36, 0.1);
-        }
-        
-        .zone-warning:hover {
-          box-shadow: 0 8px 25px rgba(251, 191, 36, 0.2), 0 4px 8px rgba(251, 191, 36, 0.15);
-          transform: translateY(-2px);
-        }
-        
-        /* Enhanced danger zone with glow effect */
-        .zone-danger {
-          background-color: rgba(254, 226, 226, 0.8);
-          border-color: #ef4444;
-          color: #dc2626;
-          box-shadow: 
-            0 4px 12px rgba(239, 68, 68, 0.25), 
-            0 2px 4px rgba(239, 68, 68, 0.15),
-            0 0 20px rgba(239, 68, 68, 0.3);
-          animation: danger-glow 2s ease-in-out infinite alternate;
-        }
-        
-        .zone-danger:hover {
-          box-shadow: 
-            0 8px 30px rgba(239, 68, 68, 0.4), 
-            0 4px 12px rgba(239, 68, 68, 0.25),
-            0 0 30px rgba(239, 68, 68, 0.5);
-          transform: translateY(-3px);
-        }
-        
-        /* Pulsing glow animation for danger zones */
-        @keyframes danger-glow {
-          0% { 
-            box-shadow: 
-              0 4px 12px rgba(239, 68, 68, 0.25), 
-              0 2px 4px rgba(239, 68, 68, 0.15),
-              0 0 20px rgba(239, 68, 68, 0.3);
-          }
-          100% { 
-            box-shadow: 
-              0 6px 20px rgba(239, 68, 68, 0.35), 
-              0 3px 8px rgba(239, 68, 68, 0.2),
-              0 0 35px rgba(239, 68, 68, 0.5);
-          }
-        }
-        
-        /* Enhanced count display */
-        .count-display {
-          font-size: 2rem;
-          font-weight: 800;
-          line-height: 1;
-          margin: 8px 0;
-        }
-        
-        .zone-danger .count-display {
-          text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-        }
-        
-        /* Limits text styling */
-        .limits-text {
-          font-size: 0.75rem;
-          opacity: 0.8;
-          font-weight: 500;
-          margin-top: 4px;
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-          .zone-card {
-            min-height: 100px;
-            padding: 0.75rem;
-          }
-          
-          .count-display {
-            font-size: 1.5rem;
-          }
-        }
-      `}</style>
+  .crowd-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+  }
+
+  .zone-card {
+    min-height: 120px;
+    min-width: 150px; /* wider for scroll rows */
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+    position: relative;
+    z-index: 0;
+  }
+  
+  @media (min-width: 768px) {
+    .zone-card { min-width: 210px; }
+  }
+  @media (min-width: 1024px) {
+    .zone-card { min-width: 280px; }
+  }
+
+  .zone-title { font-size: 1rem; font-weight: 600; }
+  .count-display { font-size: 1.5rem; font-weight: 700; }
+  .limits-text { font-size: 0.75rem; opacity: 0.8; }
+
+  /* Status styles */
+  .zone-safe { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+  .zone-warning { background: #fef3c7; border-color: #eab308; color: #92400e; }
+
+  /* Danger zone with full visible pulse */
+  .zone-danger {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #b91c1c;
+    animation: danger-glow 5s infinite alternate;
+  }
+
+  @keyframes danger-glow {
+    0% {
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  /* Scroll styling for mobile horizontal rows */
+  .zones-scroll {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .zones-scroll::-webkit-scrollbar { height: 6px; }
+  .zones-scroll::-webkit-scrollbar-thumb {
+    background: #9ca3af;
+    border-radius: 4px;
+  }
+`}</style>
 
       <div className="crowd-container">
-        {/* <h2 className="crowd-header">
-          Total People Detected:{" "}
-          <span className="total-count">{getTotalCount()}</span>
-        </h2> */}
-
-        <div className="zones-grid">
-          {Object.entries(crowdData).map(([zone, count]) => {
-            const zoneCount = count ?? 0;
-            const safeLimit = zoneLimits[zone];
-            const status = getStatus(zoneCount, safeLimit);
-
-            return (
-              <div key={zone} className={`zone-card ${statusClass(status)}`}>
-                <div className="zone-title">Zone {zone}</div>
-                <div>
-                  <div className="count-display">{zoneCount}</div>
-                  <div className="limits-text">
-                    safeLimit: {safeLimit !== undefined ? safeLimit : "N/A"}
-                  </div>
+        {["danger", "warning", "safe"].map(
+          (status) =>
+            groups[status].length > 0 && (
+              <div key={status}>
+                <div className="font-semibold mb-2 capitalize">
+                  {status} Zones
+                </div>
+                <div className="zones-scroll">
+                  {groups[status].map(({ zone, count, safeLimit }) => (
+                    <div
+                      key={zone}
+                      className={`zone-card ${statusClass(status)}`}
+                    >
+                      <div className="zone-title">Zone {zone}</div>
+                      <div className="count-display">{count}</div>
+                      <div className="limits-text">
+                        Safe Limit: {safeLimit ?? "N/A"}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            )
+        )}
       </div>
     </>
   );
