@@ -5,6 +5,7 @@ import {
   Polygon,
   CircleMarker,
   Tooltip,
+  useMap,
 } from "react-leaflet";
 // import { HeatmapLayer } from 'react-leaflet-heatmap-layer-v3';
 import L from "leaflet";
@@ -19,9 +20,11 @@ const IndoorMap = () => {
   const [zoneCounts, setZoneCounts] = useState({});
   const [safeLimits, setSafeLimits] = useState({});
   const [showHeatmap, setShowHeatmap] = useState(true);
+  const [zoneHistory, setZoneHistory] = useState({});
   const mapRef = useRef(); // Add this line
   // console.log(safeLimits)
 
+  // Update zoneHistory to only keep entries when crowd changes
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
@@ -49,10 +52,28 @@ const IndoorMap = () => {
         const layoutData = await layoutRes.json();
         const zoneCounts = await countsRes.json();
         const safeLimitsData = await safeRes.json();
-        // safeLimitsData: { A: 120, B: 100, ... }
         setLayoutData(layoutData);
         setZoneCounts(zoneCounts);
         setSafeLimits(safeLimitsData);
+
+        // Update zoneHistory: only push entry if crowd changed
+        setZoneHistory((prev) => {
+          const updated = { ...prev };
+          Object.keys(zoneCounts).forEach((zone) => {
+            if (!updated[zone]) updated[zone] = [];
+            const lastEntry = updated[zone][updated[zone].length - 1];
+            if (!lastEntry || lastEntry.count !== zoneCounts[zone]) {
+              updated[zone] = [
+                ...updated[zone],
+                {
+                  time: new Date().toLocaleTimeString(),
+                  count: zoneCounts[zone],
+                },
+              ].slice(-5); // Keep last 5 changes
+            }
+          });
+          return updated;
+        });
       } catch (err) {
         setError(err.message);
       } finally {
@@ -60,6 +81,8 @@ const IndoorMap = () => {
       }
     };
     fetchAll();
+    const interval = setInterval(fetchAll, 5000); // Fetch every 5 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const bounds = [
@@ -75,6 +98,15 @@ const IndoorMap = () => {
       map.invalidateSize();
       map.fitBounds(bounds, { padding: [10, 10], maxZoom: 0 }); // maxZoom: 0 ensures full view
     }
+  };
+
+  const MapBoundsUpdater = () => {
+    const map = useMap();
+    useEffect(() => {
+      map.invalidateSize();
+      map.fitBounds(bounds, { padding: [10, 10], maxZoom: 0 });
+    }, [map, bounds]);
+    return null;
   };
 
   if (loading) {
@@ -184,21 +216,22 @@ const IndoorMap = () => {
         scrollWheelZoom={true}
         ref={mapRef} // Add this prop
       >
+        <MapBoundsUpdater />
         {/* Conditionally render HeatmapLayer */}
         {/* {showHeatmap && heatmapPoints.length > 0 && (
-        // <HeatmapLayer
-        //   fitBoundsOnLoad={false}
-        //   fitBoundsOnUpdate={false}
-        //   points={heatmapPoints}
-        //   longitudeExtractor={m => m[1]}
-        //   latitudeExtractor={m => m[0]}
-        //   intensityExtractor={m => m[2]}
-        //   max={Math.max(...heatmapPoints.map(p => p[2]), 1)}
-        //   min={0}
-        //   radius={20}
-        //   blur={18}
-        // />
-      )} */}
+          // <HeatmapLayer
+          //   fitBoundsOnLoad={false}
+          //   fitBoundsOnUpdate={false}
+          //   points={heatmapPoints}
+          //   longitudeExtractor={(m) => m[1]}
+          //   latitudeExtractor={(m) => m[0]}
+          //   intensityExtractor={(m) => m[2]}
+          //   max={Math.max(...heatmapPoints.map((p) => p[2]), 1)}
+          //   min={0}
+          //   radius={20}
+          //   blur={18}
+          // />
+        )} */}
 
         {/* Render walls as polylines */}
         {walls.map((wall, idx) => (
@@ -265,9 +298,9 @@ const IndoorMap = () => {
             }
             if (ratio >= 1) return "rgba(229,57,53,0.85)"; // red
             if (ratio >= 0.85) return "rgba(251,140,0,0.85)"; // orange
-            if (ratio >= 0.6) return "rgba(251,192,45,0.85)"; // yellow
+            if (ratio >= 0.6) return "rgba(251,140,0,0.85)"; // yellow
             if (ratio >= 0.3) return "rgba(67,160,71,0.85)"; // green
-            return "rgba(30,136,229,0.7)"; // blue
+            return "rgba(67,160,71,0.85)"; // blue
           }
 
           return (
@@ -337,27 +370,13 @@ const IndoorMap = () => {
               style={{
                 width: 18,
                 height: 18,
-                background: "rgba(30,136,229,0.7)", // blue
-                borderRadius: 4,
-                display: "inline-block",
-              }}
-            />
-            <span>Safe (&lt;30%)</span>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span
-              style={{
-                width: 18,
-                height: 18,
                 background: "rgba(67,160,71,0.85)", // green
                 borderRadius: 4,
                 display: "inline-block",
               }}
             />
-            <span>Low (30–60%)</span>
+            <span>Safe (&lt;70%)</span>
           </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span
               style={{
@@ -368,22 +387,8 @@ const IndoorMap = () => {
                 display: "inline-block",
               }}
             />
-            <span>Moderate (60–85%)</span>
+            <span>Warning (70–100%)</span>
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span
-              style={{
-                width: 18,
-                height: 18,
-                background: "rgba(251,140,0,0.85)", // orange
-                borderRadius: 4,
-                display: "inline-block",
-              }}
-            />
-            <span>High (85–100%)</span>
-          </div>
-
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span
               style={{
@@ -395,6 +400,76 @@ const IndoorMap = () => {
               }}
             />
             <span>Overcrowded (&gt;100%)</span>
+          </div>
+        </div>
+        {/* Zone crowd history list */}
+        <div style={{ marginTop: "18px" }}>
+          <div style={{ fontWeight: 600, marginBottom: "8px" }}>
+            Zone Crowd Change (last 5 changes)
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "18px" }}>
+            {Object.keys(zoneHistory)
+              .filter((zone) => zoneHistory[zone].length > 1) // Only show if there was a change
+              .map((zone) => (
+                <div
+                  key={zone}
+                  style={{
+                    background: "#fff",
+                    borderRadius: "8px",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+                    padding: "8px 12px",
+                    minWidth: "120px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      color: "#2563eb",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {zone}
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#374151" }}>
+                    {zoneHistory[zone].map((entry, idx, arr) => {
+                      const prev = arr[idx - 1];
+                      const diff =
+                        prev !== undefined ? entry.count - prev.count : 0;
+                      return (
+                        <div
+                          key={entry.time + idx}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <span>{entry.time}</span>
+                          <span>
+                            {/* {entry.count} */}
+                            {prev !== undefined && (
+                              <span
+                                style={{
+                                  color:
+                                    diff > 0
+                                      ? "#16a34a"
+                                      : diff < 0
+                                      ? "#dc2626"
+                                      : "#64748b",
+                                  marginLeft: 6,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                {diff > 0 ? `+${diff}` : diff < 0 ? diff : ""}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       </div>

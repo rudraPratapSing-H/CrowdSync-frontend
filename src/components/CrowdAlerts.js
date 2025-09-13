@@ -50,49 +50,33 @@ const CrowdAlerts = () => {
       }
     }
 
-    async function fetchGemini() {
-      try {
-        const geminiRes = await fetch("http://localhost:5000/api/gemini", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventName: EVENT_NAME, date: DATE }),
-        });
-        const geminiJson = await geminiRes.json();
-        if (isMounted) setPredictions(geminiJson);
-        lastGeminiFetchRef.current = Date.now();
-        if (isMounted) setLoadingPredictions(false);
-      } catch (err) {
-        if (isMounted) setError("Failed to fetch predictions.");
-        if (isMounted) setLoadingPredictions(false);
-      }
-    }
+    fetchSafeLimitsAndCounts();
 
-    async function fetchAll() {
-      setLoadingAlerts(true);
-      setLoadingPredictions(true);
-      setError(null);
-
-      await fetchSafeLimitsAndCounts();
-
-      const now = Date.now();
-      if (
-        now - lastGeminiFetchRef.current > 300000 ||
-        lastGeminiFetchRef.current === 0
-      ) {
-        await fetchGemini();
-      } else {
-        setLoadingPredictions(false);
-      }
-    }
-
-    fetchAll();
-    const interval = setInterval(fetchAll, 120000);
+    const interval = setInterval(fetchSafeLimitsAndCounts, 5000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
   }, []);
+
+  // Prediction fetch only on button click
+  const handlePredictClick = async () => {
+    setLoadingPredictions(true);
+    setError(null);
+    try {
+      const geminiRes = await fetch("http://localhost:5000/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventName: EVENT_NAME, date: DATE }),
+      });
+      const geminiJson = await geminiRes.json();
+      setPredictions(geminiJson);
+    } catch (err) {
+      setError("Failed to fetch predictions.");
+    }
+    setLoadingPredictions(false);
+  };
 
   // Find current breaches
   const currentBreaches = Object.entries(recentCounts)
@@ -155,11 +139,16 @@ const CrowdAlerts = () => {
   const hasAlerts = currentBreaches.length > 0 || approachingLimit.length > 0;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+    <div
+      className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6
+    max-w-full
+    sm:p-4
+    "
+    >
       {/* Header */}
       <div className="flex items-center mb-6">
         <svg
-          className="w-6 h-6 text-red-500 mr-3"
+          className="w-6 h-6 sm:w-5 sm:h-5 text-red-500 mr-3"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -171,14 +160,16 @@ const CrowdAlerts = () => {
             d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           ></path>
         </svg>
-        <h2 className="text-xl font-bold text-gray-900">
+        <h2 className="text-xl sm:text-lg font-bold text-gray-900">
           Active Alerts & Recommendations
         </h2>
       </div>
 
       {/* Alerts Section */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-red-700 mb-3">Live Alerts</h3>
+        <h3 className="text-lg sm:text-base font-semibold text-red-700 mb-3">
+          Live Alerts
+        </h3>
         {loadingAlerts ? (
           <div
             style={{
@@ -192,6 +183,7 @@ const CrowdAlerts = () => {
               boxShadow: "0 4px 16px rgba(30,64,175,0.08)",
               marginBottom: "1rem",
             }}
+            className="w-full"
           >
             <div
               style={{
@@ -203,6 +195,7 @@ const CrowdAlerts = () => {
                 animation: "spin 1s linear infinite",
                 marginBottom: "12px",
               }}
+              className="sm:w-8 sm:h-8"
             />
             <style>
               {`@keyframes spin {
@@ -217,15 +210,16 @@ const CrowdAlerts = () => {
                 color: "#ef4444",
                 letterSpacing: "0.01em",
               }}
+              className="sm:text-sm"
             >
               Loading live alerts...
             </div>
           </div>
         ) : !hasAlerts ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-2">
             <div className="flex items-center">
               <svg
-                className="w-5 h-5 text-green-500 mr-3"
+                className="w-5 h-5 sm:w-4 sm:h-4 text-green-500 mr-3"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -237,7 +231,7 @@ const CrowdAlerts = () => {
                   d="M5 13l4 4L19 7"
                 ></path>
               </svg>
-              <span className="text-green-700 font-medium">
+              <span className="text-green-700 font-medium sm:text-sm">
                 All zones are operating within safe capacity
               </span>
             </div>
@@ -252,12 +246,12 @@ const CrowdAlerts = () => {
               return (
                 <div
                   key={zone}
-                  className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4"
+                  className="bg-red-50 border-l-4 border-red-500 rounded-lg p-4 sm:p-2"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center">
                       <svg
-                        className="w-5 h-5 text-red-500 mr-3"
+                        className="w-5 h-5 sm:w-4 sm:h-4 text-red-500 mr-3"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -269,15 +263,15 @@ const CrowdAlerts = () => {
                           d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         ></path>
                       </svg>
-                      <span className="text-lg font-semibold text-red-700">
+                      <span className="text-lg sm:text-base font-semibold text-red-700">
                         Zone {zone} Overcrowded
                       </span>
                     </div>
-                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                    <span className="bg-red-500 text-white px-3 py-1 sm:px-2 sm:py-0.5 rounded-full text-sm font-bold sm:text-xs">
                       {count}/{limit}
                     </span>
                   </div>
-                  <div className="text-red-600 mb-3">
+                  <div className="text-red-600 mb-3 sm:text-sm">
                     Current:{" "}
                     <span className="font-semibold">{count} people</span> •
                     Capacity exceeded by{" "}
@@ -285,10 +279,10 @@ const CrowdAlerts = () => {
                   </div>
 
                   {suggestions.length > 0 && (
-                    <div className="bg-white bg-opacity-60 rounded-lg p-3">
+                    <div className="bg-white bg-opacity-60 rounded-lg p-3 sm:p-2">
                       <div className="flex items-center text-red-700">
                         <svg
-                          className="w-4 h-4 mr-2"
+                          className="w-4 h-4 sm:w-3 sm:h-3 mr-2"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -300,8 +294,10 @@ const CrowdAlerts = () => {
                             d="M17 8l4 4m0 0l-4 4m4-4H3"
                           ></path>
                         </svg>
-                        <span className="font-medium">Suggestion:</span>
-                        <span className="ml-2">
+                        <span className="font-medium sm:text-xs">
+                          Suggestion:
+                        </span>
+                        <span className="ml-2 sm:text-xs">
                           Redirect flow: Zone {zone} → {suggestions.join(", ")}
                         </span>
                       </div>
@@ -315,12 +311,12 @@ const CrowdAlerts = () => {
             {approachingLimit.map(({ zone, count, limit, spotsRemaining }) => (
               <div
                 key={zone}
-                className="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4"
+                className="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-4 sm:p-2"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     <svg
-                      className="w-5 h-5 text-yellow-600 mr-3"
+                      className="w-5 h-5 sm:w-4 sm:h-4 text-yellow-600 mr-3"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -332,15 +328,15 @@ const CrowdAlerts = () => {
                         d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       ></path>
                     </svg>
-                    <span className="text-lg font-semibold text-yellow-700">
+                    <span className="text-lg sm:text-base font-semibold text-yellow-700">
                       Zone {zone} Approaching Limit
                     </span>
                   </div>
-                  <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  <span className="bg-yellow-500 text-white px-3 py-1 sm:px-2 sm:py-0.5 rounded-full text-sm font-bold sm:text-xs">
                     {count}/{limit}
                   </span>
                 </div>
-                <div className="text-yellow-700">
+                <div className="text-yellow-700 sm:text-sm">
                   Monitor closely •{" "}
                   <span className="font-semibold">
                     {spotsRemaining} spots remaining
@@ -354,9 +350,31 @@ const CrowdAlerts = () => {
 
       {/* Predictions Section */}
       <div>
-        <h3 className="text-lg font-semibold text-orange-700 mb-3">
-          Predicted Breaches
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg sm:text-base font-semibold text-orange-700">
+            Predicted Breaches
+          </h3>
+          <button
+            onClick={handlePredictClick}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 sm:px-2 sm:py-1 rounded transition shadow-sm flex items-center"
+            style={{ fontSize: "1rem" }}
+          >
+            <svg
+              className="w-5 h-5 sm:w-4 sm:h-4 mr-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M16 17l-4 4m0 0l-4-4m4 4V3"
+              />
+            </svg>
+            Predict
+          </button>
+        </div>
         {loadingPredictions ? (
           <div
             style={{
@@ -370,6 +388,7 @@ const CrowdAlerts = () => {
               boxShadow: "0 4px 16px rgba(251,146,60,0.08)",
               marginBottom: "1rem",
             }}
+            className="w-full"
           >
             <div
               style={{
@@ -381,6 +400,7 @@ const CrowdAlerts = () => {
                 animation: "spin 1s linear infinite",
                 marginBottom: "12px",
               }}
+              className="sm:w-8 sm:h-8"
             />
             <style>
               {`@keyframes spin {
@@ -395,15 +415,16 @@ const CrowdAlerts = () => {
                 color: "#fb923c",
                 letterSpacing: "0.01em",
               }}
+              className="sm:text-sm"
             >
               Loading predictions...
             </div>
           </div>
         ) : futureBreaches.length === 0 ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-2">
             <div className="flex items-center">
               <svg
-                className="w-5 h-5 text-green-500 mr-3"
+                className="w-5 h-5 sm:w-4 sm:h-4 text-green-500 mr-3"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -415,7 +436,7 @@ const CrowdAlerts = () => {
                   d="M5 13l4 4L19 7"
                 ></path>
               </svg>
-              <span className="text-green-700 font-medium">
+              <span className="text-green-700 font-medium sm:text-sm">
                 No predicted breaches for upcoming intervals
               </span>
             </div>
@@ -425,12 +446,12 @@ const CrowdAlerts = () => {
             {futureBreaches.map(({ timestamp, zone, count, limit }, index) => (
               <div
                 key={`${timestamp}-${zone}-${index}`}
-                className="bg-orange-50 border-l-4 border-orange-500 rounded-lg p-4"
+                className="bg-orange-50 border-l-4 border-orange-500 rounded-lg p-4 sm:p-2"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     <svg
-                      className="w-5 h-5 text-orange-600 mr-3"
+                      className="w-5 h-5 sm:w-4 sm:h-4 text-orange-600 mr-3"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -442,15 +463,15 @@ const CrowdAlerts = () => {
                         d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                       ></path>
                     </svg>
-                    <span className="text-lg font-semibold text-orange-700">
+                    <span className="text-lg sm:text-base font-semibold text-orange-700">
                       Zone {zone} Predicted Breach
                     </span>
                   </div>
-                  <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                  <span className="bg-orange-500 text-white px-3 py-1 sm:px-2 sm:py-0.5 rounded-full text-sm font-bold sm:text-xs">
                     {count}/{limit}
                   </span>
                 </div>
-                <div className="text-orange-700">
+                <div className="text-orange-700 sm:text-sm">
                   Predicted at{" "}
                   <span className="font-semibold">{timestamp}</span> • Expected:{" "}
                   <span className="font-semibold">{count} people</span>

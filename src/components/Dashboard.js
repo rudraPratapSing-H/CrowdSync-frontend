@@ -83,7 +83,7 @@ const Dashboard = () => {
         </div>
 
         {/* Map + Heatmap Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
           <div
             ref={venueLayoutRef}
             className="bg-white rounded-lg shadow-sm p-4 sm:p-6"
@@ -94,12 +94,12 @@ const Dashboard = () => {
             <IndoorMap />
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+          {/* <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Crowd Heatmap
             </h2>
             <CrowdHeatmap />
-          </div>
+          </div> */}
         </div>
 
         {/* Alerts Section */}
