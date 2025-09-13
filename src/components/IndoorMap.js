@@ -5,6 +5,7 @@ import {
   Polygon,
   CircleMarker,
   Tooltip,
+  useMap,
 } from "react-leaflet";
 // import { HeatmapLayer } from 'react-leaflet-heatmap-layer-v3';
 import L from "leaflet";
@@ -97,6 +98,15 @@ const IndoorMap = () => {
       map.invalidateSize();
       map.fitBounds(bounds, { padding: [10, 10], maxZoom: 0 }); // maxZoom: 0 ensures full view
     }
+  };
+
+  const MapBoundsUpdater = () => {
+    const map = useMap();
+    useEffect(() => {
+      map.invalidateSize();
+      map.fitBounds(bounds, { padding: [10, 10], maxZoom: 0 });
+    }, [map, bounds]);
+    return null;
   };
 
   if (loading) {
@@ -206,6 +216,7 @@ const IndoorMap = () => {
         scrollWheelZoom={true}
         ref={mapRef} // Add this prop
       >
+        <MapBoundsUpdater />
         {/* Conditionally render HeatmapLayer */}
         {/* {showHeatmap && heatmapPoints.length > 0 && (
           // <HeatmapLayer
